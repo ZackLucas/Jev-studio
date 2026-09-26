@@ -1,0 +1,37 @@
+name: jev-studio
+
+services:
+  jeff:
+    build:
+      context: .
+      args:
+        JEFF_REF: ${JEFF_REF:-main}
+    image: jev-studio-jeff:latest
+    container_name: jev-studio-jeff
+    # 🔑 Adiciona suporte a GPU
+    runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1  # Usar 1 GPU (mude se tiver mais)
+              capabilities: [gpu]
+    ports:
+      - "127.0.0.1:${JEFF_HOST_PORT:-8000}:8000"
+    environment:
+      JEFF_API_KEYS: ${JEFF_API_KEYS:-}
+      # Força usar GPU
+      JEFF_DEVICE: cuda
+    volumes:
+      - models:/models
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "python3.12", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 30m
+
+volumes:
+  models:

@@ -1,3 +1,0 @@
-gliner==0.1.11
-gliformer==0.1.0
-torch>=2.0.0

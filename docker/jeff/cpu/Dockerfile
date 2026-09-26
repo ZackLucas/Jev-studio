@@ -11,6 +11,7 @@ ENV UV_SYSTEM_PYTHON=1 \
 ARG JEFF_REF=main
 RUN pip install --no-cache-dir uv \
  && uv pip install torch --index-url https://download.pytorch.org/whl/cpu \
+ && uv pip install "gliner==0.1.11" \
  && uv pip install "jeff @ https://github.com/jarihu/jeff/archive/${JEFF_REF}.tar.gz"
 
 COPY entrypoint.sh /usr/local/bin/jeff-entrypoint
