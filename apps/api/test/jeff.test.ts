@@ -68,7 +68,14 @@ const tick = () => new Promise((r) => setTimeout(r, 5));
 const target = { baseUrl: 'http://localhost:8000' };
 
 function runtime(docker: FakeDocker, reachable = () => false) {
-  return new DockerJeffRuntime('/studio/docker/jeff/compose.yml', docker.run, async () => reachable());
+  return new DockerJeffRuntime(
+    {
+      cpu: { composeFile: '/studio/docker/jeff/cpu/compose.yml', image: 'jev-studio-jeff:cpu' },
+      gpu: { composeFile: '/studio/docker/jeff/gpu/compose.yml', image: 'jev-studio-jeff:gpu' },
+    },
+    docker.run,
+    async () => reachable(),
+  );
 }
 
 describe('DockerJeffRuntime', () => {
@@ -156,6 +163,19 @@ describe('DockerJeffRuntime', () => {
     assert.equal(parsePs(''), null);
     assert.equal(cleanLog('\x1b[32mok\x1b[0m\na\rb\r'), 'ok\nb');
   });
+
+  it('drives the compose file and image of the chosen device', async () => {
+    const docker = new FakeDocker();
+    docker.image = true;
+    const rt = runtime(docker);
+    await rt.start({ baseUrl: 'http://localhost:8000', device: 'gpu' });
+    await tick();
+    const up = docker.calls.find((c) => c.args[3] === 'up')!;
+    assert.match(up.args[2]!, /docker\/jeff\/gpu\/compose\.yml$/);
+    const inspect = docker.calls.find((c) => c.args[0] === 'image')!;
+    assert.equal(inspect.args[2], 'jev-studio-jeff:gpu');
+    assert.equal(docker.calls.find((c) => c.args[3] === 'up')?.env?.JEFF_HOST_PORT, '8000');
+  });
 });
 
 describe('JeffService', () => {
@@ -209,7 +229,7 @@ describe('automatic start/stop', () => {
 
   it('defaults: auto-start on, auto-stop off', async () => {
     const settings = new FileSettingsStore(path.join(mkdtempSync(path.join(os.tmpdir(), 'jev-auto-')), 'c.json'), {});
-    assert.deepEqual(await settings.getJeffAuto(), { autoStart: true, autoStop: false });
+    assert.deepEqual(await settings.getJeffAuto(), { autoStart: true, autoStop: false, device: 'auto' });
   });
 
   it('starts on open only when jeff is the backend and auto-start is on', async () => {

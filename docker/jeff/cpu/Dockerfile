@@ -8,11 +8,16 @@ ENV UV_SYSTEM_PYTHON=1 \
 
 # CPU wheels first (PyPI's default torch bundles ~4 GB of CUDA libraries), then jeff from its
 # GitHub tarball (no git needed). JEFF_REF = branch, tag or commit.
+#
+# gliformer 0.1.2 imports `build_all_entity_pairs`, which only exists in gliner >= 0.2.26 —
+# and those gliner releases cap `transformers` (< 5.17). Without the constraint uv picks an
+# older gliner and jeff crashes on startup. Versions mirror jeff's own uv.lock.
 ARG JEFF_REF=main
 RUN pip install --no-cache-dir uv \
+ && printf 'gliner==0.2.29\ntransformers==5.16.1\n' > /tmp/jeff-constraints.txt \
  && uv pip install torch --index-url https://download.pytorch.org/whl/cpu \
- && uv pip install "gliner==0.1.11" \
- && uv pip install "jeff @ https://github.com/jarihu/jeff/archive/${JEFF_REF}.tar.gz"
+ && uv pip install --constraints /tmp/jeff-constraints.txt "jeff @ https://github.com/jarihu/jeff/archive/${JEFF_REF}.tar.gz" \
+ && rm /tmp/jeff-constraints.txt
 
 COPY entrypoint.sh /usr/local/bin/jeff-entrypoint
 RUN chmod +x /usr/local/bin/jeff-entrypoint

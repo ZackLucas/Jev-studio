@@ -36,7 +36,7 @@ const configSchema = z.object({
   backend: z.enum(['typesafe', 'jeff']).optional(),
   model: z.string().optional(),
   backends: z.object({ typesafe: backendPatch.optional(), jeff: backendPatch.optional() }).optional(),
-  jeff: z.object({ autoStart: z.boolean().optional(), autoStop: z.boolean().optional() }).optional(),
+  jeff: z.object({ autoStart: z.boolean().optional(), autoStop: z.boolean().optional(), device: z.enum(['auto', 'cpu', 'gpu']).optional() }).optional(),
 });
 
 function parse<T>(schema: z.ZodType<T, z.ZodTypeDef, unknown>, value: unknown): T {
@@ -104,10 +104,12 @@ export function buildRouter(deps: AppDeps): Router {
   r.get('/api/config', async () => deps.config.view());
   r.put('/api/config', async ({ body }) => {
     const input = parse(configSchema, body) as ConfigUpdate;
-    const before = (await deps.config.view()).backend;
+    const before = await deps.config.view();
     const view = await deps.config.update(input);
     // Auto start/stop runs in the background; the UI follows it through GET /api/jeff.
-    if (view.backend !== before) void deps.jeff.onBackendChanged(before, view.backend);
+    if (view.backend !== before.backend) void deps.jeff.onBackendChanged(before.backend, view.backend);
+    // Different device = different image: drop the running container so the next start uses it.
+    if (view.jeff.device !== before.jeff.device) void deps.jeff.stop().catch(() => undefined);
     return view;
   });
 

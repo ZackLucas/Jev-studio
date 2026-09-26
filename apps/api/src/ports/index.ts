@@ -2,7 +2,7 @@
  * Ports: what the application needs from the outside world.
  * Services depend only on these interfaces; adapters implement them.
  */
-import type { Backend, HistoryEntry, JeffAuto, JeffStatus, KeySource, Scenario, SystemOneRequest, SystemOneResult } from '@jev/core';
+import type { Backend, HistoryEntry, JeffAuto, JeffDevice, JeffStatus, KeySource, Scenario, SystemOneRequest, SystemOneResult } from '@jev/core';
 
 /** Anything that answers the official `POST /v1/systemone` — TypeSafe itself or a jeff instance. */
 export interface SystemOneGateway {
@@ -17,6 +17,8 @@ export interface JeffTarget {
   baseUrl: string;
   /** Becomes JEFF_API_KEYS in the container; empty = no auth. */
   apiKey?: string;
+  /** Which image to run; 'auto' (default) = GPU when Docker can use one, else CPU. */
+  device?: JeffDevice;
 }
 
 /** Starts/stops a local jeff (today: a Docker Compose service). */

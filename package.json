@@ -20,7 +20,8 @@
     "start": "npm start -w @jev/api",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "tsx --test packages/core/test/*.test.ts apps/api/test/*.test.ts",
-    "jeff": "node bin/jev-studio.mjs jeff"
+    "jeff": "node bin/jev-studio.mjs jeff",
+    "jeff:examples": "bash scripts/jeff-examples.sh"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

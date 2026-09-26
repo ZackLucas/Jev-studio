@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { api } from '../lib/api';
-import { jeffDot, jeffLabel, type JeffControl } from '../lib/jeff';
+import { jeffDot, jeffLabel, JEFF_VARIANT_LABEL, type JeffControl } from '../lib/jeff';
 import { ErrorBox } from './ui';
 
 function elapsed(since: number, now: number): string {
@@ -73,8 +73,8 @@ export function JeffPanel({ jeff }: { jeff: JeffControl }) {
       )}
       {s?.phase === 'building' && (
         <p className="muted small">
-          A primeira vez baixa Python, PyTorch (versão CPU) e o jeff; depois o modelo (~1,7 GB). As próximas vezes ligam em
-          segundos.
+          A primeira vez baixa Python, PyTorch ({s.device === 'gpu' ? 'versão CUDA' : 'versão CPU'}) e o jeff; depois o
+          modelo (~1,7 GB). As próximas vezes ligam em segundos.
         </p>
       )}
 
@@ -86,7 +86,7 @@ export function JeffPanel({ jeff }: { jeff: JeffControl }) {
             {showLogs ? 'Ocultar logs' : 'Ver logs'}
           </button>
           <span className="muted small">
-            Container <code>jev-studio-jeff</code> · porta {s.port}
+            Container <code>jev-studio-jeff</code> · {JEFF_VARIANT_LABEL[s.device]} · porta {s.port}
           </span>
         </div>
       )}

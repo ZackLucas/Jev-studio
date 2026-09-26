@@ -3,9 +3,11 @@ import {
   DEFAULT_JEFF_BASE_URL,
   DEFAULT_MODEL,
   DEFAULT_TYPESAFE_BASE_URL,
+  JEFF_DEVICES,
   normalizeBaseUrl,
   type Backend,
   type JeffAuto,
+  type JeffDevice,
 } from '@jev/core';
 import type { ResolvedKey, SettingsStore } from '../ports';
 import { Mutex, readJson, writeJson } from './json-file';
@@ -22,7 +24,7 @@ interface StudioConfig {
   jeff?: Partial<JeffAuto>;
 }
 
-export const DEFAULT_JEFF_AUTO: JeffAuto = { autoStart: true, autoStop: false };
+export const DEFAULT_JEFF_AUTO: JeffAuto = { autoStart: true, autoStop: false, device: 'auto' };
 
 /** Env vars follow the official SDK (TYPESAFE_*); JEFF_* mirror them for the local server. */
 export const BACKEND_ENV: Record<Backend, { key: string; baseUrl: string; defaultUrl: string }> = {
@@ -137,6 +139,7 @@ export class FileSettingsStore implements SettingsStore {
     return {
       autoStart: typeof saved.autoStart === 'boolean' ? saved.autoStart : DEFAULT_JEFF_AUTO.autoStart,
       autoStop: typeof saved.autoStop === 'boolean' ? saved.autoStop : DEFAULT_JEFF_AUTO.autoStop,
+      device: JEFF_DEVICES.includes(saved.device as JeffDevice) ? (saved.device as JeffDevice) : DEFAULT_JEFF_AUTO.device,
     };
   }
 
@@ -145,6 +148,8 @@ export class FileSettingsStore implements SettingsStore {
       c.jeff = { ...c.jeff };
       if (typeof patch.autoStart === 'boolean') c.jeff.autoStart = patch.autoStart;
       if (typeof patch.autoStop === 'boolean') c.jeff.autoStop = patch.autoStop;
+      if (patch.device && JEFF_DEVICES.includes(patch.device)) c.jeff.device = patch.device;
+      else if (patch.device) throw new Error(`Dispositivo do jeff desconhecido: ${patch.device}`);
     });
   }
 }

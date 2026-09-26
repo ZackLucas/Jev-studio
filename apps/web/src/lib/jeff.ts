@@ -1,8 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { JeffPhase, JeffStatus } from '@jev/core';
+import type { JeffDevice, JeffPhase, JeffStatus, JeffVariant } from '@jev/core';
 import { api } from './api';
 
 export const JEFF_BUSY: readonly JeffPhase[] = ['building', 'starting', 'stopping'];
+
+export const JEFF_DEVICE_LABEL: Record<JeffDevice, string> = {
+  auto: 'Automático (GPU se disponível)',
+  cpu: 'CPU',
+  gpu: 'GPU',
+};
+
+/** Short label for the variant that is actually running. */
+export const JEFF_VARIANT_LABEL: Record<JeffVariant, string> = { cpu: 'CPU', gpu: 'GPU' };
 
 export const JEFF_PHASE_LABEL: Record<JeffPhase, string> = {
   'no-docker': 'Docker indisponível',

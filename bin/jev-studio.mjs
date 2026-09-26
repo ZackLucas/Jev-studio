@@ -10,9 +10,12 @@ import { fileURLToPath } from 'node:url';
 
 const SELF = realpathSync(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(path.dirname(SELF), '..');
-const COMPOSE = path.join(ROOT, 'docker/jeff/compose.yml');
+const JEFF_COMPOSES = {
+  cpu: path.join(ROOT, 'docker/jeff/cpu/compose.yml'),
+  gpu: path.join(ROOT, 'docker/jeff/gpu/compose.yml'),
+};
+const jeffImage = (variant) => `jev-studio-jeff:${variant}`;
 const DATA_DIR = process.env.JEV_STUDIO_DATA ?? path.join(ROOT, 'data');
-const IMAGE = 'jev-studio-jeff:latest';
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 
 const c = (code) => (s) => (process.stdout.isTTY ? `\x1b[${code}m${s}\x1b[0m` : s);
@@ -133,9 +136,10 @@ function readJson(file) {
   }
 }
 
-/** Same port and key the UI uses, so both manage the very same container. */
+/** Same port, key and device the UI uses, so both manage the very same container. */
 function jeffTarget() {
-  const saved = readJson(path.join(DATA_DIR, 'config.v2.json')).backends?.jeff ?? {};
+  const config = readJson(path.join(DATA_DIR, 'config.v2.json'));
+  const saved = config.backends?.jeff ?? {};
   const baseUrl = (process.env.JEFF_BASE_URL?.trim() || saved.baseUrl || 'http://localhost:8000').replace(/\/+$/, '');
   const key = process.env.JEFF_API_KEY?.trim() || saved.apiKey || '';
   let port = 8000;
@@ -145,13 +149,24 @@ function jeffTarget() {
     port = Number(u.port) || (u.protocol === 'https:' ? 443 : 80);
     local = ['localhost', '127.0.0.1', '::1', '[::1]', '0.0.0.0'].includes(u.hostname);
   } catch {}
-  return { baseUrl, key, port, local };
+  const device = config.jeff?.device === 'cpu' || config.jeff?.device === 'gpu' ? config.jeff.device : detectDevice();
+  return { baseUrl, key, port, local, device };
+}
+
+/** Same rule as the Studio: JEFF_VARIANT wins, else GPU only when this Docker can reach one. */
+function detectDevice() {
+  const env = (process.env.JEFF_VARIANT ?? '').trim().toLowerCase();
+  if (env === 'cpu' || env === 'gpu') return env;
+  if (!existsSync('/dev/nvidia0')) return 'cpu';
+  if (existsSync('/etc/cdi/nvidia.yaml') || existsSync('/var/run/cdi/nvidia.yaml')) return 'gpu';
+  const r = spawnSync('docker', ['info', '--format', '{{json .Runtimes}}'], { encoding: 'utf8' });
+  return r.status === 0 && /nvidia/i.test(r.stdout ?? '') ? 'gpu' : 'cpu';
 }
 
 function compose(args, { capture = false } = {}) {
   const t = jeffTarget();
   const env = { ...process.env, JEFF_HOST_PORT: String(t.port), JEFF_API_KEYS: t.key, BUILDKIT_PROGRESS: 'plain' };
-  const r = spawnSync('docker', ['compose', '-f', COMPOSE, ...args], {
+  const r = spawnSync('docker', ['compose', '-f', JEFF_COMPOSES[t.device], ...args], {
     cwd: ROOT,
     env,
     stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit',
@@ -194,8 +209,9 @@ async function jeff(args) {
     const s = jeffState();
     if (s?.State === 'running' && s.Health === 'healthy') return console.log(green(`✓ jeff já está ligado em ${t.baseUrl}`));
     if (s?.State !== 'running' && (await healthy(t.baseUrl))) die(`Já há um jeff respondendo em ${t.baseUrl}, iniciado fora do Studio.`);
-    const hasImage = spawnSync('docker', ['image', 'inspect', IMAGE], { stdio: 'ignore' }).status === 0;
-    if (!hasImage) console.log(blue('→ Primeira vez: montando a imagem (Python 3.12 + PyTorch CPU + jeff). Leva alguns minutos.'));
+    const hasImage = spawnSync('docker', ['image', 'inspect', jeffImage(t.device)], { stdio: 'ignore' }).status === 0;
+    if (!hasImage)
+      console.log(blue(`→ Primeira vez: montando a imagem (Python 3.12 + PyTorch ${t.device === 'gpu' ? 'CUDA' : 'CPU'} + jeff). Leva alguns minutos.`));
     if (compose(['up', '-d', ...(hasImage ? [] : ['--build']), 'jeff']).code !== 0) die('Não consegui ligar o jeff (veja acima).');
     console.log(blue('→ Esperando o jeff ficar pronto (a primeira vez baixa o modelo, ~1,7 GB). Ctrl+C para de esperar; o jeff continua ligando.'));
     const started = Date.now();
@@ -224,7 +240,7 @@ async function jeff(args) {
     const s = jeffState();
     const ok = await healthy(t.baseUrl);
     const state = !s ? 'sem container' : s.State === 'running' ? `rodando${s.Health ? ` (${s.Health})` : ''}` : s.State;
-    console.log(`jeff no Docker: ${bold(state)}`);
+    console.log(`jeff no Docker: ${bold(state)} · ${t.device === 'gpu' ? 'GPU' : 'CPU'}`);
     console.log(`${t.baseUrl}: ${ok ? green('respondendo') : yellow('sem resposta')}`);
     return;
   }

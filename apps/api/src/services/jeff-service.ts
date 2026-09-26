@@ -11,7 +11,8 @@ export class JeffService {
 
   private async target(): Promise<JeffTarget> {
     const key = await this.settings.resolveKey('jeff');
-    return { baseUrl: await this.settings.getBaseUrl('jeff'), apiKey: key?.key };
+    const { device } = await this.settings.getJeffAuto();
+    return { baseUrl: await this.settings.getBaseUrl('jeff'), apiKey: key?.key, device };
   }
 
   async status(): Promise<JeffStatus> {

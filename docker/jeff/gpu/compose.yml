@@ -1,3 +1,8 @@
+# jeff on the GPU. Managed by JEV Studio (Configurações → jeff, or `jev-studio jeff ...`).
+# Manual use: docker compose -f docker/jeff/gpu/compose.yml up -d --build
+#
+# Requires the NVIDIA driver + nvidia-container-toolkit (Docker 25+ talks to it through CDI).
+# Check with: docker run --rm --gpus all nvidia/cuda:12.8.0-base-ubuntu22.04 nvidia-smi
 name: jev-studio
 
 services:
@@ -6,31 +11,35 @@ services:
       context: .
       args:
         JEFF_REF: ${JEFF_REF:-main}
-    image: jev-studio-jeff:latest
+    # A distinct tag per variant: cpu and gpu images must not overwrite each other.
+    image: jev-studio-jeff:gpu
     container_name: jev-studio-jeff
-    # 🔑 Adiciona suporte a GPU
-    runtime: nvidia
+    # Docker >= 25 (with nvidia-container-toolkit) reserves the GPU through CDI.
+    # `runtime: nvidia` is the legacy path and is gone in Docker 29.
     deploy:
       resources:
         reservations:
           devices:
             - driver: nvidia
-              count: 1  # Usar 1 GPU (mude se tiver mais)
+              count: 1
               capabilities: [gpu]
     ports:
+      # Only reachable from this computer.
       - "127.0.0.1:${JEFF_HOST_PORT:-8000}:8000"
     environment:
+      # Empty = no auth (fine: bound to localhost). Set JEFF_API_KEYS to require a key.
       JEFF_API_KEYS: ${JEFF_API_KEYS:-}
-      # Força usar GPU
+      # Run the model on the GPU.
       JEFF_DEVICE: cuda
     volumes:
       - models:/models
     restart: "no"
     healthcheck:
-      test: ["CMD", "python3.12", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
       interval: 5s
       timeout: 3s
       retries: 3
+      # First start downloads ~1.7 GB; failures don't count during this window.
       start_period: 30m
 
 volumes:

@@ -6,11 +6,12 @@ import {
   type Backend,
   type ConfigUpdate,
   type ConfigView,
+  type JeffDevice,
 } from '@jev/core';
 import { JeffPanel } from '../../components/JeffPanel';
 import { ErrorBox, useToast } from '../../components/ui';
 import { api } from '../../lib/api';
-import type { JeffControl } from '../../lib/jeff';
+import { JEFF_DEVICE_LABEL, type JeffControl } from '../../lib/jeff';
 
 interface Props {
   config: ConfigView | undefined;
@@ -213,6 +214,30 @@ function JeffSection({
     <section className="panel">
       <h3 className="section-title">jeff local</h3>
       <JeffPanel jeff={jeff} />
+      <label className="field-label" htmlFor="jeff-device">
+        Dispositivo
+      </label>
+      <div className="save-row">
+        <select
+          id="jeff-device"
+          className="input"
+          value={auto.device}
+          onChange={(e) =>
+            void update(
+              { jeff: { device: e.target.value as JeffDevice } },
+              `Dispositivo do jeff: ${JEFF_DEVICE_LABEL[e.target.value as JeffDevice]}`,
+            )
+          }
+        >
+          <option value="auto">Automático — GPU se disponível, senão CPU</option>
+          <option value="gpu">GPU — NVIDIA (exige o nvidia-container-toolkit)</option>
+          <option value="cpu">CPU — funciona em qualquer máquina</option>
+        </select>
+      </div>
+      <p className="muted small">
+        Trocar de dispositivo desliga o container; ligue de novo para usar a nova imagem (a de GPU é maior e demora mais na
+        primeira vez). O automático usa a GPU quando o Docker consegue enxergá-la.
+      </p>
       <div className="checks">
         <label className="check">
           <input

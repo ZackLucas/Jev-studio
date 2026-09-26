@@ -9,7 +9,7 @@ import { FileSettingsStore } from './adapters/file-settings';
 import { DockerJeffRuntime } from './adapters/docker-jeff-runtime';
 import { HttpSystemOneGateway } from './adapters/http-systemone-gateway';
 import { buildServer } from './http/app';
-import { DATA_DIR, JEFF_COMPOSE_FILE, WEB_DIST } from './paths';
+import { DATA_DIR, JEFF_COMPOSE_FILES, jeffImage, WEB_DIST } from './paths';
 import { ConfigService } from './services/config-service';
 import { DecisionService } from './services/decision-service';
 import { JeffService } from './services/jeff-service';
@@ -25,7 +25,13 @@ const settings = new FileSettingsStore(path.join(DATA_DIR, 'config.v2.json'));
 const history = new FileRepository<HistoryEntry>(path.join(DATA_DIR, 'history.v2.json'), HISTORY_LIMIT);
 const scenarios = new FileRepository<Scenario>(path.join(DATA_DIR, 'scenarios.json'));
 
-const jeff = new JeffService(new DockerJeffRuntime(JEFF_COMPOSE_FILE), settings);
+const jeff = new JeffService(
+  new DockerJeffRuntime({
+    cpu: { composeFile: JEFF_COMPOSE_FILES.cpu, image: jeffImage('cpu') },
+    gpu: { composeFile: JEFF_COMPOSE_FILES.gpu, image: jeffImage('gpu') },
+  }),
+  settings,
+);
 
 const server = buildServer({
   decisions: new DecisionService(new HttpSystemOneGateway(), settings, history),

@@ -74,12 +74,22 @@ export interface BackendView {
   keyEnv: string;
 }
 
-/** Automatic control of the local jeff container. */
+/** Which jeff image to run: CPU (works anywhere) or GPU (needs NVIDIA + nvidia-container-toolkit). */
+export type JeffVariant = 'cpu' | 'gpu';
+export const JEFF_VARIANTS: readonly JeffVariant[] = ['cpu', 'gpu'];
+
+/** 'auto' picks GPU when Docker can use one, otherwise CPU. */
+export type JeffDevice = JeffVariant | 'auto';
+export const JEFF_DEVICES: readonly JeffDevice[] = ['auto', 'cpu', 'gpu'];
+
+/** Runtime settings for the local jeff container. */
 export interface JeffAuto {
   /** Start it when jeff is the backend: when the Studio opens and when switching to jeff. */
   autoStart: boolean;
   /** Stop it when the Studio closes and when switching to TypeSafe. */
   autoStop: boolean;
+  /** Which image to run. 'auto' = GPU when available, else CPU. */
+  device: JeffDevice;
 }
 
 export interface ConfigView {
@@ -91,7 +101,7 @@ export interface ConfigView {
 }
 
 /**
- * State of the jeff container the Studio manages with Docker (docker/jeff/compose.yml).
+ * State of the jeff container the Studio manages with Docker (docker/jeff/<cpu|gpu>/compose.yml).
  * - no-docker: Docker or Compose missing, daemon stopped or no permission (see `message`)
  * - stopped:   no container, or it exited
  * - building:  first start — building the image (a few minutes)
@@ -113,6 +123,8 @@ export interface JeffStatus {
   local: boolean;
   /** Host port the container publishes (taken from the base URL). */
   port: number;
+  /** Variant that is running — or that would be started — with 'auto' already resolved. */
+  device: JeffVariant;
 }
 
 export interface ConfigUpdate {

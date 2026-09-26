@@ -75,7 +75,7 @@ docker compose version             # precisa responder v2.x; senão: sudo apt in
 **Pela interface:** Configurações → Backend → **jeff (local)** → **Ligar jeff**. O painel mostra o que está
 acontecendo e os logs ao vivo; no Playground, se o jeff estiver desligado, aparece um botão para ligá-lo.
 
-- **Primeira vez:** monta a imagem (Python 3.12, PyTorch versão CPU e o jeff — alguns minutos) e baixa o modelo
+- **Primeira vez:** monta a imagem (Python 3.12, PyTorch e o jeff — alguns minutos) e baixa o modelo
   (~1,7 GB, fica num volume do Docker). Depois liga em segundos.
 - **Ligar automaticamente** (padrão: ativado): ao abrir o Studio com o jeff como backend e ao trocar para o jeff.
 - **Desligar automaticamente** (padrão: desativado): ao fechar o Studio (Ctrl+C) e ao trocar para a TypeSafe.
@@ -95,8 +95,24 @@ jev-studio jeff update    # reconstrói com a versão mais nova do jeff
 jev-studio jeff remove    # apaga container, imagem e modelo (~5 GB)
 ```
 
-Os arquivos estão em `docker/jeff/` (`Dockerfile`, `compose.yml`, `entrypoint.sh`). Um jeff que você suba por
-conta própria no mesmo endereço também funciona: o Studio detecta que ele responde e só não o liga/desliga.
+Para testar o jeff por HTTP direto, sem o Studio: `npm run jeff:examples` (ou `bash scripts/jeff-examples.sh`)
+mostra health, modelos, stats e uma chamada de cada tipo de pergunta. Aceita `JEFF_URL` e `JEFF_API_KEY`.
+
+**GPU (opcional, bem mais rápida):** há duas variantes — CPU e CUDA. A de GPU precisa do driver NVIDIA e do
+**nvidia-container-toolkit** (o Docker 25+ fala com ele por CDI). Rode uma vez:
+
+```bash
+sudo bash scripts/setup-nvidia-docker.sh
+```
+
+Depois, em **Configurações → jeff → Dispositivo**, escolha **Automático** (usa a GPU quando o Docker enxerga uma,
+senão CPU), **GPU** ou **CPU**. Trocar de dispositivo desliga o container; a próxima vez liga com a imagem escolhida.
+Pelo terminal, force com `JEFF_VARIANT=gpu jev-studio jeff start`. A variante de GPU usa PyTorch **cu128** — é a
+primeira linha com suporte a Blackwell (RTX 50), que a `cu121` não tem.
+
+Os arquivos estão em `docker/jeff/`, uma pasta por variante (`cpu/` e `gpu/`, com `Dockerfile`, `compose.yml` e
+`entrypoint.sh`). Um jeff que você suba por conta própria no mesmo endereço também funciona: o Studio detecta que
+ele responde e só não o liga/desliga.
 
 ## Receitas
 
@@ -134,7 +150,7 @@ studio/
     src/http/                 #   router + rotas REST + arquivos estáticos
     src/server.ts             #   composition root
   apps/web/                   # React + Vite
-  docker/jeff/                # imagem e compose do jeff (Python 3.12, PyTorch CPU)
+  docker/jeff/                # imagem e compose do jeff: cpu/ (PyTorch CPU) e gpu/ (PyTorch cu128)
   bin/jev-studio.mjs          # o comando jev-studio
 ```
 

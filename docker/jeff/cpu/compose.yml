@@ -8,7 +8,8 @@ services:
       context: .
       args:
         JEFF_REF: ${JEFF_REF:-main}
-    image: jev-studio-jeff:latest
+    # A distinct tag per variant: cpu and gpu images must not overwrite each other.
+    image: jev-studio-jeff:cpu
     container_name: jev-studio-jeff
     ports:
       # Only reachable from this computer.

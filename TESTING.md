@@ -16,7 +16,8 @@ Nenhum deles chama a TypeSafe nem precisa de Docker.
 1. `jev-studio` e abra http://localhost:5174
 2. **Configurações → Backend → jeff (local)**. Com "Ligar automaticamente" ativado (padrão), ele já começa a
    ligar; senão, clique em **Ligar jeff**. Na primeira vez leva alguns minutos (imagem + modelo de ~1,7 GB) —
-   clique em **Ver logs** para acompanhar.
+   clique em **Ver logs** para acompanhar. Em **Dispositivo** você escolhe CPU (padrão em máquina sem NVIDIA) ou
+   GPU; o automático usa a GPU quando o Docker enxerga uma (`sudo bash scripts/setup-nvidia-docker.sh` uma vez).
 3. Quando aparecer **Ligado**, vá ao **Playground**, escolha uma receita, clique em **Exemplo** e em
    **Enviar para jeff**.
 4. Confira:
@@ -42,6 +43,13 @@ curl http://localhost:8000/v1/systemone -H 'Content-Type: application/json' -d '
 ```
 
 (Se você salvou uma chave do jeff no Studio, acrescente `-H 'Authorization: Bearer SUA_CHAVE'`.)
+
+Há um script pronto com esses exemplos (health, modelos, stats e cada tipo de pergunta):
+
+```bash
+bash scripts/jeff-examples.sh          # tudo; ou: bash scripts/jeff-examples.sh score choice
+JEFF_URL=http://localhost:8001 JEFF_API_KEY=devkey bash scripts/jeff-examples.sh
+```
 
 ## 3. Com a API oficial da TypeSafe
 
@@ -74,4 +82,5 @@ Os campos de cada receita estão em `GET /api/presets` (ou no formulário do Pla
 | O serviço do Docker está parado | `sudo systemctl start docker` |
 | Falta o Docker Compose v2 | `sudo apt install docker-compose-v2` |
 | A porta 8000 já está em uso | mude a base URL do jeff para `http://localhost:8001` e ligue de novo |
+| Docker não usa a GPU | rode `sudo bash scripts/setup-nvidia-docker.sh` e reinicie o Docker; ou mude o Dispositivo do jeff para CPU |
 | `jev-studio: command not found` | rode `node bin/jev-studio.mjs install` na pasta `studio` e siga a dica do PATH |
