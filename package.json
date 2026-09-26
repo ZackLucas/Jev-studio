@@ -1,0 +1,29 @@
+{
+  "name": "jev-studio",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Interface gráfica para testar chamadas ao Jev (API oficial da TypeSafe) e ao jeff local",
+  "type": "module",
+  "bin": {
+    "jev-studio": "bin/jev-studio.mjs"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "npm run build -w @jev/web",
+    "start": "npm start -w @jev/api",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "tsx --test packages/core/test/*.test.ts apps/api/test/*.test.ts",
+    "jeff": "node bin/jev-studio.mjs jeff"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}

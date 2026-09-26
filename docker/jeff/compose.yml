@@ -1,0 +1,31 @@
+# Managed by JEV Studio (Configurações → jeff, or `jev-studio jeff ...`).
+# Manual use: docker compose -f docker/jeff/compose.yml up -d --build
+name: jev-studio
+
+services:
+  jeff:
+    build:
+      context: .
+      args:
+        JEFF_REF: ${JEFF_REF:-main}
+    image: jev-studio-jeff:latest
+    container_name: jev-studio-jeff
+    ports:
+      # Only reachable from this computer.
+      - "127.0.0.1:${JEFF_HOST_PORT:-8000}:8000"
+    environment:
+      # Empty = no auth (fine: bound to localhost). Set JEFF_API_KEYS to require a key.
+      JEFF_API_KEYS: ${JEFF_API_KEYS:-}
+    volumes:
+      - models:/models
+    restart: "no"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      # First start downloads ~1.7 GB; failures don't count during this window.
+      start_period: 30m
+
+volumes:
+  models:
